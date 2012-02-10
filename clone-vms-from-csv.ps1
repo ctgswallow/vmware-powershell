@@ -96,7 +96,9 @@ foreach ($vm in $vms) {
     Set-VM -VM $newvm -Description $description -Confirm:$confirm
   
     # Set number of CPUs / memory (in gigabytes)
-	Set-Vm -VM $vm.Name -NumCpu $vm.CPUs -MemoryMB $vm.MemGB -Confirm:$confirm
+	$mem = $vm.MemGB + "GB"
+	$mem = $vm / 1MB
+	Set-Vm -VM $vm.Name -NumCpu $vm.CPUs -MemoryMB $mem -Confirm:$confirm
 	
     # Power on the VM.
     Start-VM -VM $vm.Name -Confirm:$confirm
