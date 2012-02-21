@@ -8,7 +8,7 @@ Add-PSSnapIn VMware.VimAutomation.Core
 
 # Columns in the CSV file are:
 # vCenter, Cluster, Template, Name, Disksize, Network,
-# CPU, MemGB, Folder, ResourcePool
+# CPU, MemGB, Folder, ResourcePool, Description
 
 $csvfile = $args[0]
 if (Get-Item $csvfile) {
@@ -90,7 +90,7 @@ foreach ($vm in $vms) {
     } # Will refrain from adding new resource pools if they don't exist.
   
     # Set Comments
-    $description = "Cloned from " + $vm.Template + " at " + $mmddyyyy
+    $description = $vm.description + " cloned from " + $vm.Template + " at " + $mmddyyyy
     Set-CustomField -Entity $newvm -Name "Creator" -Value $me -Confirm:$confirm
     Set-CustomField -Entity $newvm -Name "Email" -Value $email -Confirm:$confirm
     Set-VM -VM $newvm -Description $description -Confirm:$confirm
