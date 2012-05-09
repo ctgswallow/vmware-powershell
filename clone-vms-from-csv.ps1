@@ -20,7 +20,9 @@ $queues = @()
 
 # Columns in the CSV file are:
 # vCenter, Cluster, Template, Name, Disksize, Network,
-# CPU, MemGB, Folder, ResourcePool, Description
+# CPUs, MemGB, IPAddress, Netmask, Gateway, FirstDNS, SecondDNS,
+# DomainName, Folder, ResourcePool, Description
+
 $csvfile = $args[0]
 if (Get-Item $csvfile) {
   $vms = Import-Csv $csvfile
@@ -97,10 +99,17 @@ $sb = {
         $datastores = Get-Datastore -VMHost $curhost | Where-Object {$_.FreeSpaceMB -gt $totalmb} | sort -Descending -Property FreeSpaceMB
         $drand = Get-Random -Maximum $datastores.Count -Minimum 1
 		
+		# Create a temporary OSCustomizationSpec to use to set IP addresses.
+		$dnsServers = @($vm.FirstDNS, $vm.SecondDNS)
+		$spec = New-OSCustomizationSpec -Type NonPersistent -Name $vm.Name -NamingScheme VM -DnsServer $dnsServers -DnsSuffix $vm.DomainName -OSType Linux -Domain $vm.DomainName
+		$nicmap = Get-OSCustomizationNicMapping -OSCustomizationSpec $spec.Name
+		Set-OSCustomizationNicMapping -OSCustomizationNicMapping $nicmap -IpMode UseStaticIP -IpAddress $vm.IPAddress -SubnetMask $vm.Netmask -DefaultGateway $vm.Gateway
+		
 		# Create the VM from template.  Make sure the resource pool exists and create the folder if necessary.  
         Write-Host $vm.Name will be cloned from $vm.Template in $vm.Folder on $curhost, datastore $datastores[$drand] in network $vm.Network
-		$newvm = New-VM -Name $vm.Name -Template $template -DiskStorageFormat Thin -Host $curhost -Datastore $datastores[$drand] -Confirm:$confirm
+		$newvm = New-VM -Name $vm.Name -Template $template -OSCustomizationSpec $spec.Name -DiskStorageFormat Thin -Host $curhost -Datastore $datastores[$drand] -Confirm:$confirm
 		$nvview = Get-View $newvm.Id
+		Remove-OSCustomizationSpec -OSCustomizationSpec $spec -Confirm $confirm
 		
 		# Move the VM to its network.
         if ($adapter = Get-NetworkAdapter -VM $newvm | where { $_.Name -eq "Network Adapter 1" }) {
