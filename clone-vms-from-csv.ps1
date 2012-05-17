@@ -21,7 +21,7 @@ $queues = @()
 # Columns in the CSV file are:
 # vCenter, Cluster, Template, Name, Disksize, Network,
 # CPUs, MemGB, IPAddress, Netmask, Gateway, FirstDNS, SecondDNS,
-# DomainName, Folder, ResourcePool, Description
+# DomainName, Folder, ResourcePool, Description, LeadDeveloper
 
 $csvfile = $args[0]
 if (Get-Item $csvfile) {
@@ -169,6 +169,13 @@ $sb = {
 		} else {
 		  New-CustomAttribute -Name Email -TargetType $null -Confirm:$confirm
           $nvview.setCustomValue($ca.Name,$email)
+		}
+		
+		if ($ca = Get-CustomAttribute -Name LeadDeveloper) {
+		  $nvview.setCustomValue($ca.LeadDeveloper,$vm.LeadDeveloper)
+		} else {
+		  New-CustomAttribute -Name LeadDeveloper -TargetType $null -Confirm:$confirm
+		  $nvview.setCustomValue($ca.LeadDeveloper,$vm.LeadDeveloper)
 		}
 		
 		# Set memory / CPU / notes via methods on VM View object.  You can't use
