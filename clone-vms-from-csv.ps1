@@ -25,7 +25,11 @@ $queues = @()
 # Columns in the CSV file are:
 # vCenter, Cluster, Template, Name, Disksize, Network,
 # CPUs, MemGB, IPAddress, Netmask, Gateway, FirstDNS, SecondDNS,
-# DomainName, Folder, ResourcePool, Description, LeadDeveloper
+# DomainName, Folder, ResourcePool, Description, LeadDeveloper,
+# DNS
+#
+# Some of the columns in the .xltx contain formulas to make life
+# easier for ETers.
 
 $csvfile = $args[0]
 if (Get-Item $csvfile) {
@@ -113,16 +117,25 @@ $sb = {
 		
 		  # Create a temporary OSCustomizationSpec to use to set IP addresses.
 		  $dnsServers = @($vm.FirstDNS, $vm.SecondDNS)
-		  $spec = New-OSCustomizationSpec -Type NonPersistent -Name $vm.Name -NamingScheme VM -DnsServer $dnsServers -DnsSuffix $vm.DomainName -OSType Linux -Domain $vm.DomainName
-		  $nicmap = Get-OSCustomizationNicMapping -OSCustomizationSpec $spec.Name
-		  Set-OSCustomizationNicMapping -OSCustomizationNicMapping $nicmap -IpMode UseStaticIP -IpAddress $vm.IPAddress -SubnetMask $vm.Netmask -DefaultGateway $vm.Gateway
+		  if ($spec = New-OSCustomizationSpec -Type NonPersistent -Name $vm.Name -NamingScheme VM -DnsServer $dnsServers -DnsSuffix $vm.DomainName -OSType Linux -Domain $vm.DomainName) {
+		    $nicmap = Get-OSCustomizationNicMapping -OSCustomizationSpec $spec.Name
+		    Set-OSCustomizationNicMapping -OSCustomizationNicMapping $nicmap -IpMode UseStaticIP -IpAddress $vm.IPAddress -SubnetMask $vm.Netmask -DefaultGateway $vm.Gateway
 		
-		  # Create the VM from template.  Make sure the resource pool exists and create the folder if necessary.  
-      Write-Host $vm.Name will be cloned from $vm.Template in $vm.Folder on $curhost, datastore $datastores[$drand] in network $vm.Network
-		  $newvm = New-VM -Name $vm.Name -Template $template -OSCustomizationSpec $spec.Name -DiskStorageFormat Thin -Host $curhost -Datastore $datastores[$drand] -Confirm:$confirm
-		  $nvview = Get-View $newvm.Id
-		  Remove-OSCustomizationSpec -OSCustomizationSpec $spec -Confirm $confirm
-		
+		    # Create the VM from template.  Make sure the resource pool exists and create the folder if necessary.  
+        Write-Host $vm.Name will be cloned from $vm.Template in $vm.Folder on $curhost, datastore $datastores[$drand] in network $vm.Network
+		    $newvm = New-VM -Name $vm.Name -Template $template -OSCustomizationSpec $spec.Name -DiskStorageFormat Thin -Host $curhost -Datastore $datastores[$drand] -Confirm:$confirm
+		    $nvview = Get-View $newvm.Id
+		    
+				#This may not even be necessary.
+				# Remove-OSCustomizationSpec -OSCustomizationSpec $spec.Name
+		  } else {
+			  # Or fail and move on.
+				Write-Host Could not create a OSCustomizationSpec called $vm.Name
+				Write-Host $vm.Name will be cloned from $vm.Template in $vm.Folder on $curhost, datastore $datastores[$drand] in network $vm.Network
+		    $newvm = New-VM -Name $vm.Name -Template $template -DiskStorageFormat Thin -Host $curhost -Datastore $datastores[$drand] -Confirm:$confirm
+		    $nvview = Get-View $newvm.Id
+			}
+			
 		  # Move the VM to its network.
       if ($adapter = Get-NetworkAdapter -VM $newvm | where { $_.Name -eq "Network Adapter 1" }) {
 		    Write-Host Moving network adapter to $vm.Network network.
@@ -172,22 +185,22 @@ $sb = {
 	    if ($ca = Get-CustomAttribute -Name Creator) {
 		    $nvview.setCustomValue($ca.Name,$me)
 		  } else {
-		    New-CustomAttribute -Name Creator -TargetType $null -Confirm:$confirm
-		    $nvview.setCustomValue($ca.Name,$me)
+		    $ca = New-CustomAttribute -Name Creator -TargetType $null -Confirm:$confirm
+		    $nvview.setCustomValue(Name,$me)
 		  }
 		 
 		  if ($ca = Get-CustomAttribute -Name Email) {
 		    $nvview.setCustomValue($ca.Name,$email)
 		  } else {
-		    New-CustomAttribute -Name Email -TargetType $null -Confirm:$confirm
+		    $ca = New-CustomAttribute -Name Email -TargetType $null -Confirm:$confirm
         $nvview.setCustomValue($ca.Name,$email)
 		  }
 		
 		  if ($ca = Get-CustomAttribute -Name LeadDeveloper) {
-		    $nvview.setCustomValue($ca.LeadDeveloper,$vm.LeadDeveloper)
+		    $nvview.setCustomValue($ca.LeadDeveloper,"$vm.LeadDeveloper")
 		  } else {
-		    New-CustomAttribute -Name LeadDeveloper -TargetType $null -Confirm:$confirm
-		    $nvview.setCustomValue($ca.LeadDeveloper,$vm.LeadDeveloper)
+		    $ca = New-CustomAttribute -Name LeadDeveloper -TargetType $null -Confirm:$confirm
+		    $nvview.setCustomValue($ca.LeadDeveloper,"$vm.LeadDeveloper")
 		  }
 		
 		  # Set memory / CPU / notes via methods on VM View object.  You can't use
