@@ -171,9 +171,9 @@ $sb = {
         if ($folder = New-Folder -Location $vfolder -Name $vm.Folder -Confirm:$confirm) {
 		      Write-Host Created $folder folder.  Moving $vm.Name to folder.
 			    $fview = Get-View $folder.Id
-			    $fview.MoveInfoFolder($nvview.MoRef)
+			    $fview.MoveIntoFolder($nvview.MoRef)
 	      } else {
-  	      Write-Host "Could not create $vm.Folder folder"
+  	      Write-Host Could not create $vm.Folder folder.
   	   	}
       }
     
