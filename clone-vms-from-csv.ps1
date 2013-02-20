@@ -42,7 +42,7 @@ if (Get-Item $csvfile) {
     } else {
       $queues[$i] += $vm
     }
-    Write-Host Adding $vm.Name to Queue $queues.Count 
+    Write-Host Adding $vm.Name to Queue $i 
     $i++
     if ($i -eq $jobs.Count) {
       $i = 0
