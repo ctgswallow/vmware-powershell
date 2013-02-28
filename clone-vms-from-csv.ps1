@@ -150,10 +150,10 @@ $sb = {
 			}
 
 			# Resize the second hard disk to the specified size (40GB is default)
-      if ($disk = Get-HardDisk -VM $newvm | where { $_.Name -eq "Hard disk 2" }) {
+      if ($disk = Get-HardDisk -VM $newvm | Where-Object { $_.Name -eq "Hard disk 2" }) {
         if ($disk.CapacityKB -lt $secondkb) {
 		      Write-Host Setting Hard-disk $disk.Name to $secondkb KB capacity.
-          Set-HardDisk -HardDisk $disk -Capacity $secondkb -Confirm:$confirm
+          Set-HardDisk -HardDisk $disk -CapacityKB $secondkb -Confirm:$confirm
         } else {
 		      Write-Host Replacing $disk.Name with $secondkb KB capacity disk.
 	        Remove-HardDisk -HardDisk $disk -DeletePermanently:$true -Confirm:$confirm
