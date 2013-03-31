@@ -228,14 +228,14 @@ $sb = {
 		  $nvview.ReconfigVM($vmConfigSpec)
 
 	    
-      # Power on the VM. Start-VM blocks, too.  Fuck powershell.
+      # Power on the VM. Start-VM blocks, too.  Blocked tasks will hang jobs and never return.
 		  Write-Host Powering on $vm.Name.
 		  $nvview.PowerOnVM($chview.MoRef)
-	  } # End if template... test
-  } # End foreach loop
+	  } 
+  } 
   Write-Host Disconnecting from $connectedserver.
   Disconnect-VIServer -Server $connectedserver -Confirm:$confirm
-} # End script block
+} 
 
 # Start background jobs and pass work queues to each job
 $i = 0
